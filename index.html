@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de Filas ao Vivo — Supermercado (Grupo 6)</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1b222c; --line:#26303d; --line2:#324151;
+    --txt:#e6edf3; --muted:#8b98a8; --muted2:#5d6b7d;
+    --teal:#2ec4b6; --teal-b:#39d0c8; --coral:#ff6b5d; --amber:#f0b429; --violet:#9b8cff; --green:#3ddc97;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 18px 70px}
+  a{color:var(--teal-b)}
+  header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;border-bottom:1px solid var(--line);padding-bottom:13px;margin-bottom:18px}
+  .brand{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal-b)}
+  h1{font-size:19px;font-weight:650;margin:3px 0 0;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:12px;margin-left:auto;max-width:380px;text-align:right}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .card h2{font-size:13px;font-weight:600;margin:0 0 3px;display:flex;align-items:center;gap:8px}
+  .card .cap{color:var(--muted);font-size:12px;margin:0 0 12px}
+
+  #drop{border:1.5px dashed #33414f;border-radius:14px;padding:42px 24px;text-align:center;background:var(--panel)}
+  #drop.hover{border-color:var(--teal-b);background:#11201f}
+  #drop .big{font-size:16px;font-weight:600;margin-bottom:6px}
+  #drop .hint{color:var(--muted);font-size:12.5px}
+  .btnA{display:inline-block;margin-top:16px;background:var(--teal-b);color:#06201e;border:none;border-radius:8px;padding:10px 20px;font-weight:700;cursor:pointer;font-size:13.5px}
+  .btnG{margin-top:16px;margin-left:8px;background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:8px;padding:10px 16px;cursor:pointer;font-size:13.5px}
+  .btnG:hover{color:var(--txt);border-color:var(--muted2)}
+
+  /* ---- painel de controle ---- */
+  .ctrlbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+  .play{background:var(--green);color:#062018;border:none;border-radius:9px;padding:10px 20px;font-weight:700;font-size:14px;cursor:pointer;min-width:118px}
+  .play.pausar{background:var(--amber);color:#241b04}
+  .iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--line2);border-radius:9px;padding:10px 14px;cursor:pointer;font-size:13px}
+  .iconbtn:hover{color:var(--txt)}
+  .seg{display:inline-flex;border:1px solid var(--line2);border-radius:9px;overflow:hidden}
+  .seg button{background:transparent;color:var(--muted);border:none;padding:9px 13px;cursor:pointer;font-family:var(--mono);font-size:12.5px;border-left:1px solid var(--line2)}
+  .seg button:first-child{border-left:none}
+  .seg button.on{background:var(--teal);color:#06201e;font-weight:700}
+  .lbl{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .caixasctl{display:inline-flex;align-items:center;gap:0;border:1px solid var(--line2);border-radius:9px;overflow:hidden}
+  .caixasctl button{background:var(--panel2);color:var(--teal-b);border:none;width:38px;height:38px;font-size:20px;cursor:pointer;font-weight:700}
+  .caixasctl button:hover{background:#22303d}
+  .caixasctl .num{min-width:46px;text-align:center;font-family:var(--mono);font-size:17px;font-weight:700}
+  .clock{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .clock .hhmm{font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:.02em}
+  .clock .day{font-size:11px;color:var(--muted)}
+  .prog{height:6px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:12px;border:1px solid var(--line)}
+  .prog > div{height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-b));width:0%}
+
+  /* ---- animação ---- */
+  #stageWrap{position:relative;background:#0b0f14;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  #stage{display:block;width:100%}
+  .stageTag{position:absolute;top:8px;left:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
+
+  /* ---- KPIs destaque ---- */
+  .kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin:16px 0}
+  .kgrid.sec{grid-template-columns:repeat(4,1fr);margin-top:0}
+  .kbig{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 17px;position:relative;overflow:hidden}
+  .kbig::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--teal-b)}
+  .kbig.alert::before{background:var(--coral)} .kbig.amber::before{background:var(--amber)} .kbig.green::before{background:var(--green)}
+  .kbig .lab{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:baseline}
+  .kbig .frm{font-family:var(--mono);font-size:11px;color:var(--muted2)}
+  .kbig .num{font-family:var(--mono);font-weight:680;letter-spacing:-.02em;margin-top:8px;line-height:1}
+  .kgrid .num{font-size:34px} .kgrid.sec .num{font-size:24px}
+  .kbig .un{font-size:14px;color:var(--muted);font-weight:400}
+  .kbig .dsc{font-size:11px;color:var(--muted2);margin-top:7px}
+
+  /* ---- log ---- */
+  .logtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  .logtools input[type=text]{background:var(--panel2);border:1px solid var(--line2);color:var(--txt);border-radius:7px;padding:7px 10px;font-family:var(--mono);font-size:12px;width:130px}
+  .ftag{background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:15px;padding:5px 11px;cursor:pointer;font-size:11.5px}
+  .ftag.on{color:var(--txt);border-color:var(--teal-b);background:#11201f}
+  .logbox{height:260px;overflow:auto;border:1px solid var(--line);border-radius:9px;background:#0b0f14}
+  table.log{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+  table.log th{position:sticky;top:0;background:#11161d;color:var(--muted);font-weight:500;text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;z-index:1}
+  table.log td{padding:5px 10px;border-bottom:1px solid #1a2129;white-space:nowrap}
+  table.log tr:hover td{background:#11161d}
+  .ev{font-weight:700} .ev.chegada{color:var(--violet)} .ev.fila{color:var(--amber)} .ev.atend{color:var(--teal-b)} .ev.saida{color:var(--green)} .ev.abandono{color:var(--coral)}
+  .baixar{margin-left:auto;background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:7px;padding:7px 12px;cursor:pointer;font-size:12px}
+  .baixar:hover{color:var(--txt)}
+
+  /* ---- análise recolhível ---- */
+  details.an{border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:16px;overflow:hidden}
+  details.an>summary{padding:15px 16px;cursor:pointer;font-size:13px;font-weight:600;list-style:none;display:flex;align-items:center;gap:9px}
+  details.an>summary::-webkit-details-marker{display:none}
+  details.an>summary::before{content:"▸";color:var(--muted);transition:.15s}
+  details.an[open]>summary::before{transform:rotate(90deg)}
+  .anbody{padding:0 16px 16px}
+  table.mmc{width:100%;border-collapse:collapse;font-size:13px}
+  table.mmc th,table.mmc td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--line);font-family:var(--mono)}
+  table.mmc th{color:var(--muted);font-weight:500;font-family:var(--sans);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  table.mmc td:first-child,table.mmc th:first-child{text-align:left;font-family:var(--sans)}
+  table.mmc tr.bad td{color:var(--coral)}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;margin-bottom:6px}
+  .chip{border:1px solid var(--line2);border-radius:16px;padding:5px 11px;color:var(--muted)}
+  .chip.ok{color:var(--green);border-color:#1d4a3a}.chip.ok::before{content:"✓ "}
+  .chip.warn{color:var(--amber);border-color:#5a4a1e}.chip.warn::before{content:"! "}
+  .chip.bad{color:var(--coral);border-color:#5a2a26}.chip.bad::before{content:"✗ "}
+  .note{color:var(--muted2);font-size:11.5px;margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+  .hide{display:none}
+  @media(max-width:820px){.sub{text-align:left;margin-left:0}.kgrid,.kgrid.sec{grid-template-columns:repeat(2,1fr)}.clock{margin-left:0;width:100%;justify-content:space-between}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="brand">ENGF84 · Grupo 6 · M(t)/G/c com abandono</div>
+      <h1>Simulador de filas ao vivo — operação de caixa</h1>
+    </div>
+    <p class="sub">Assista clientes chegarem, esperarem e serem atendidos. Ajuste só o que o gerente ajusta: o número de caixas.</p>
+  </header>
+
+  <div id="drop" class="card">
+    <div class="big">Carregue a planilha de eventos</div>
+    <div class="hint">Arraste um .csv ou .xlsx, ou clique. Colunas: <span style="font-family:var(--mono);color:var(--muted)">id, dia, itens, chegada, coleta_inicio, coleta_fim, caixa_inicio, caixa_fim, abandonou</span></div>
+    <input id="file" type="file" accept=".csv,.xlsx,.xls" class="hide">
+    <button class="btnA" onclick="document.getElementById('file').click()">Escolher arquivo</button>
+    <button class="btnG" id="exemplo">Usar dados de exemplo</button>
+    <div id="erro" style="color:var(--coral);font-family:var(--mono);font-size:12px;margin-top:13px"></div>
+  </div>
+
+  <div id="app" class="hide">
+    <!-- painel de controle -->
+    <div class="card">
+      <div class="ctrlbar">
+        <button class="play" id="play">▶ Iniciar</button>
+        <button class="iconbtn" id="reset">↻ Reiniciar</button>
+        <span class="lbl">Velocidade</span>
+        <div class="seg" id="vel">
+          <button data-v="1">1×</button><button data-v="2">2×</button>
+          <button data-v="10" class="on">10×</button><button data-v="100">100×</button><button data-v="1000">1000×</button>
+        </div>
+        <span class="lbl">Caixas abertos</span>
+        <div class="caixasctl">
+          <button id="cMinus">−</button><span class="num" id="cNum">3</span><button id="cPlus">+</button>
+        </div>
+        <div class="clock">
+          <div>
+            <div class="hhmm" id="relogio">08:00</div>
+            <div class="day" id="diaInfo">simulando um dia representativo</div>
+          </div>
+        </div>
+      </div>
+      <div class="prog"><div id="progBar"></div></div>
+    </div>
+
+    <!-- animação -->
+    <div id="stageWrap" class="card" style="padding:0">
+      <div class="stageTag">Entrada → Coleta → Fila → Caixas → Saída</div>
+      <canvas id="stage" height="340"></canvas>
+    </div>
+
+    <!-- KPIs destaque -->
+    <div class="kgrid" id="kHero"></div>
+    <div class="kgrid sec" id="kSec"></div>
+
+    <!-- log -->
+    <div class="card">
+      <h2>Registro de eventos <span style="color:var(--muted2);font-weight:400;font-size:11px">(consultável)</span></h2>
+      <div class="logtools">
+        <div class="ftag on" data-f="todos">todos</div>
+        <div class="ftag" data-f="chegada">chegada</div>
+        <div class="ftag" data-f="fila">entra na fila</div>
+        <div class="ftag" data-f="atend">atendimento</div>
+        <div class="ftag" data-f="saida">saída</div>
+        <div class="ftag" data-f="abandono">abandono</div>
+        <input type="text" id="buscaId" placeholder="buscar cliente #">
+        <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px"><input type="checkbox" id="soAte" checked> só até o relógio</label>
+        <button class="baixar" id="baixarLog">baixar log .csv</button>
+      </div>
+      <div class="logbox">
+        <table class="log"><thead><tr><th>hora</th><th>evento</th><th>cliente</th><th>itens</th><th>detalhe</th></tr></thead><tbody id="logBody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- análise recolhível -->
+    <details class="an">
+      <summary>Análise técnica — baseline M/M/c e verificação (V&V)</summary>
+      <div class="anbody">
+        <div class="chips" id="verif"></div>
+        <p class="cap" style="margin:10px 0 4px;color:var(--muted)">Baseline analítico (Erlang-C) nos pontos de operação — gabarito calculável à mão:</p>
+        <table class="mmc" id="mmcTab"></table>
+        <p class="note" id="valNote"></p>
+      </div>
+    </details>
+
+    <details class="an">
+      <summary>Parâmetros calibrados do log (somente leitura)</summary>
+      <div class="anbody"><div class="chips" id="paramChips"></div>
+      <p class="note">Todos estimados do dataset — nada chumbado. No mercado simulado, só o número de caixas é ajustável; demanda, serviço, coleta e paciência vêm dos dados.</p></div>
+    </details>
+
+  </div><!-- /app -->
+</div>
+<script>
+"use strict";
+// ===========================================================================
+//  NÚCLEO DO SIMULADOR — pipeline orientado a dados (sem DOM)
+//  Espelha o que vai embutido no HTML. Aqui só para teste em Node.
+//  Contrato de esquema: id, dia, itens, chegada, coleta_inicio, coleta_fim,
+//                       caixa_inicio, caixa_fim, abandonou
+// ===========================================================================
+const COLUNAS = ['id','dia','itens','chegada','coleta_inicio','coleta_fim','caixa_inicio','caixa_fim','abandonou'];
+
+// ---------- parse CSV -> linhas tipadas ------------------------------------
+function parseData(text){
+  const linhas = text.replace(/\r/g,'').split('\n').filter(l=>l.length);
+  const head = linhas[0].split(',').map(s=>s.trim());
+  const faltam = COLUNAS.filter(c=>!head.includes(c));
+  if(faltam.length) throw new Error('Esquema inválido. Faltam colunas: '+faltam.join(', '));
+  const idx = {}; COLUNAS.forEach(c=>idx[c]=head.indexOf(c));
+  const parseT = (s)=>{ if(!s) return null;
+    // "YYYY-MM-DD HH:MM:SS" -> minutos desde a meia-noite do dia
+    const m = s.match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+    if(!m) return null; return (+m[4])*60 + (+m[5]) + (+m[6])/60; };
+  const rows = [];
+  for(let i=1;i<linhas.length;i++){
+    const p = linhas[i].split(',');
+    rows.push({
+      id:+p[idx.id], dia:+p[idx.dia], itens:+p[idx.itens],
+      chegada:parseT(p[idx.chegada]),
+      coletaIni:parseT(p[idx.coleta_inicio]), coletaFim:parseT(p[idx.coleta_fim]),
+      caixaIni:parseT(p[idx.caixa_inicio]), caixaFim:parseT(p[idx.caixa_fim]),
+      abandonou: String(p[idx.abandonou]).trim().toLowerCase()==='true',
+      _raw: linhas[i],
+    });
+  }
+  return rows;
+}
+
+// ---------- limpeza documentada -------------------------------------------
+function limpar(rows){
+  const rel = {bruto:rows.length, duplicados:0, impossiveis:0, coletaFimFaltante:0, abandonos:0};
+  // duplicados exatos (linha idêntica)
+  const vistos = new Set(); const semDup = [];
+  for(const r of rows){ if(vistos.has(r._raw)){rel.duplicados++; continue;} vistos.add(r._raw); semDup.push(r); }
+  const limpos = [];
+  for(const r of semDup){
+    if(r.abandonou) rel.abandonos++;
+    if(r.coletaFim==null) rel.coletaFimFaltante++;
+    // registro impossível: ordem temporal violada (atendidos)
+    const ord = [r.chegada, r.coletaFim, r.caixaIni, r.caixaFim].filter(v=>v!=null);
+    let possivel = true;
+    for(let i=1;i<ord.length;i++) if(ord[i] < ord[i-1]-1e-9) possivel=false;
+    if(!r.abandonou && (r.caixaIni==null || r.caixaFim==null)) possivel=false; // atendido sem caixa
+    if(!possivel){ rel.impossiveis++; continue; }
+    limpos.push(r);
+  }
+  rel.limpo = limpos.length;
+  return {limpos, rel};
+}
+
+// ---------- estimadores (parâmetros vêm do log, nada chumbado) -------------
+function estimar(limpos){
+  const atend = limpos.filter(r=>!r.abandonou && r.caixaIni!=null && r.caixaFim!=null && r.caixaFim>r.caixaIni);
+  const nDias = new Set(limpos.map(r=>r.dia)).size;
+
+  // μ e regressão de serviço (segundos)
+  const serv = atend.map(r=>(r.caixaFim-r.caixaIni)*60); // min->s
+  const itensA = atend.map(r=>r.itens);
+  const muS = serv.reduce((a,b)=>a+b,0)/serv.length;       // s
+  const muH = 3600/muS;                                    // /h
+  const {b0,b1,r:rr} = regressao(itensA, serv);
+  const resid = serv.map((s,i)=>s-(b0+b1*itensA[i]));
+  const residSd = Math.sqrt(resid.reduce((a,b)=>a+b*b,0)/resid.length);
+
+  // coleta (s) -> lognormal por momentos
+  const col = limpos.filter(r=>r.coletaFim!=null && r.coletaIni!=null).map(r=>(r.coletaFim-r.coletaIni)*60).filter(v=>v>0);
+  const colM = media(col), colSd = desvio(col,colM);
+  const colSigma = Math.sqrt(Math.log(1+(colSd*colSd)/(colM*colM)));
+  const colMu = Math.log(colM)-colSigma*colSigma/2;
+
+  // itens: distribuição empírica (resampling) + momentos
+  const itensEmp = limpos.map(r=>r.itens).filter(v=>v>0);
+  const itM = media(itensEmp), itSd = desvio(itensEmp,itM);
+
+  // c por sweep-line (concorrência máxima)
+  const c = concorrenciaMax(atend);
+
+  // λ(h): chegadas/h por hora, média por dia
+  const lambdaH = new Array(24).fill(0);
+  const cont = new Array(24).fill(0);
+  for(const r of limpos){ if(r.chegada!=null){ const h=Math.floor(r.chegada/60); cont[h]++; } }
+  for(let h=0;h<24;h++) lambdaH[h] = cont[h]/Math.max(1,nDias);
+
+  // abandono empírico
+  const abandonoPct = 100*limpos.filter(r=>r.abandonou).length/limpos.length;
+
+  // janela de operação observada
+  const horasAtivas = lambdaH.map((v,h)=>v>0?h:-1).filter(h=>h>=0);
+  const horaAbre = Math.min(...horasAtivas), horaFecha = Math.max(...horasAtivas)+1;
+
+  return {
+    nDias, c,
+    mu:{s:muS, h:muH},
+    servico:{b0, b1, residSd},                 // serviço(s) = b0 + b1*itens + N(0,residSd)
+    coleta:{mediaS:colM, sd:colSd, mu:colMu, sigma:colSigma},
+    itens:{emp:itensEmp, media:itM, sd:itSd},
+    lambdaH, horaAbre, horaFecha,
+    abandonoPctEmp: abandonoPct,
+    regR: rr,
+  };
+}
+
+// ---------- utilitários estatísticos --------------------------------------
+function media(a){return a.reduce((x,y)=>x+y,0)/a.length;}
+function desvio(a,m){m=m??media(a);return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length);}
+function regressao(x,y){
+  const n=x.length, sx=x.reduce((a,b)=>a+b,0), sy=y.reduce((a,b)=>a+b,0);
+  const sxx=x.reduce((a,b)=>a+b*b,0), sxy=x.reduce((a,b,i)=>a+b*y[i],0), syy=y.reduce((a,b)=>a+b*b,0);
+  const b1=(n*sxy-sx*sy)/(n*sxx-sx*sx), b0=(sy-b1*sx)/n;
+  const r=(n*sxy-sx*sy)/Math.sqrt((n*sxx-sx*sx)*(n*syy-sy*sy));
+  return {b0,b1,r};
+}
+function concorrenciaMax(atend){
+  const ev=[];
+  for(const r of atend){ const base=(r.dia||0)*1440;     // separa os dias no tempo absoluto
+    ev.push([base+r.caixaIni,1]); ev.push([base+r.caixaFim,-1]); }
+  ev.sort((a,b)=> a[0]-b[0] || a[1]-b[1]);   // empate: fim (-1) antes de início (+1)
+  let cur=0,mx=0; for(const [,d] of ev){cur+=d; if(cur>mx)mx=cur;} return mx;
+}
+
+// ---------- RNG + distribuições -------------------------------------------
+function criarRng(seed){ let a=seed>>>0; return function(){ a|=0;a=(a+0x6D2B79F5)|0;
+  let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+const expo=(rng,media)=> -Math.log(1-rng())*media;
+const normal=(rng,mu,sd)=> mu+sd*Math.sqrt(-2*Math.log(1-rng()))*Math.cos(2*Math.PI*rng());
+const logn=(rng,mu,sg)=> Math.exp(normal(rng,mu,sg));
+const escolhe=(rng,arr)=> arr[(rng()*arr.length)|0];
+
+// ---------- heap de eventos -----------------------------------------------
+class Heap{ constructor(){this.a=[];} get tamanho(){return this.a.length;}
+  push(e){const a=this.a;a.push(e);let i=a.length-1;while(i>0){const p=(i-1)>>1;if(a[p].t<=a[i].t)break;[a[p],a[i]]=[a[i],a[p]];i=p;}}
+  pop(){const a=this.a,top=a[0],u=a.pop();if(a.length){a[0]=u;let i=0;const n=a.length;while(true){let m=i,l=2*i+1,r=2*i+2;if(l<n&&a[l].t<a[m].t)m=l;if(r<n&&a[r].t<a[m].t)m=r;if(m===i)break;[a[m],a[i]]=[a[i],a[m]];i=m;}}return top;} }
+
+// ===========================================================================
+//  MOTOR DISTRIBUTION-DRIVEN — 5 eventos, acumuladores integrais no tempo
+// ===========================================================================
+function runSimDist(P, cfg){
+  const rng=criarRng(cfg.seed);
+  const c=cfg.c, abre=cfg.horaAbre*60, fecha=cfg.horaFecha*60, T=fecha-abre;
+  const heap=new Heap(); let livres=c; const fila=[];
+  let totChegadas=0, entraram=0, atendidos=0, abandonados=0;
+  let somaWq=0, wqMax=0, somaTotal=0, somaPassagem=0, somaServ=0;
+  let areaFila=0, areaSist=0, ocupTempo=0, filaMax=0, tAnt=abre;
+
+  const horas=cfg.horaFecha-cfg.horaAbre;
+  const porHora=[]; for(let h=0;h<horas;h++) porHora.push({hora:cfg.horaAbre+h,chegadas:0,atendidos:0,abandonos:0,servMin:0});
+  const filaT=[{t:abre,fila:0}], abandonosT=[];
+  const idxH=t=>Math.min(horas-1,Math.max(0,Math.floor(t/60)-cfg.horaAbre));
+  const lambda=t=>Math.max(1e-9, P.lambdaH[Math.floor(t/60)]*cfg.lambdaScale);
+
+  function integra(t){ const dt=t-tAnt; if(dt>0){ areaFila+=fila.length*dt; ocupTempo+=(c-livres)*dt; areaSist+=(fila.length+(c-livres))*dt; } tAnt=t; }
+  function creditaServ(ini,fim){ somaServ+=(fim-ini); let t=ini; while(t<fim){const hr=Math.floor(t/60),fh=(hr+1)*60,ate=Math.min(fim,fh),i=hr-cfg.horaAbre; if(i>=0&&i<horas)porHora[i].servMin+=(ate-t); t=ate;} }
+  function tentaAtender(t){ while(livres>0 && fila.length>0){ const cli=fila.shift(); cli.emFila=false; livres--;
+      const wq=t-cli.tFila; somaWq+=wq; if(wq>wqMax)wqMax=wq;
+      const serv = cfg.servExpMean ? expo(rng,cfg.servExpMean)
+                 : Math.max(1, P.servico.b0 + P.servico.b1*cli.itens + normal(rng,0,P.servico.residSd))/60; // s->min
+      creditaServ(t,t+serv); heap.push({t:t+serv,tipo:'fim',cli}); } }
+
+  heap.push({t:abre+expo(rng,60/lambda(abre)),tipo:'chegada'});
+  let guard=0;
+  while(heap.tamanho){ if(++guard>5e6) throw new Error('limite de eventos');
+    const ev=heap.pop(), t=ev.t; if(t>fecha && ev.tipo==='chegada') continue;
+    integra(Math.min(t,fecha));
+    if(ev.tipo==='chegada'){ totChegadas++;
+      const itens=Math.max(1,Math.round(escolhe(rng,P.itens.emp)));
+      const cli={itens,tChegada:t,emFila:false};
+      const coleta = cfg.semColeta ? 0 : logn(rng,P.coleta.mu,P.coleta.sigma)/60;   // s->min, delay individual
+      heap.push({t:t+coleta,tipo:'fimColeta',cli});
+      heap.push({t:t+expo(rng,60/lambda(t)),tipo:'chegada'});
+      porHora[idxH(t)].chegadas++;
+    } else if(ev.tipo==='fimColeta'){ const cli=ev.cli; cli.tFila=t; cli.emFila=true; entraram++;
+      fila.push(cli); if(fila.length>filaMax)filaMax=fila.length; filaT.push({t,fila:fila.length});
+      if(!cfg.semAbandono) heap.push({t:t+expo(rng,cfg.pacienciaMedia),tipo:'abandono',cli});
+      tentaAtender(t);
+    } else if(ev.tipo==='abandono'){ const cli=ev.cli;
+      if(cli.emFila){ const k=fila.indexOf(cli); if(k>=0)fila.splice(k,1); cli.emFila=false;
+        abandonados++; somaPassagem+=(t-cli.tFila); porHora[idxH(t)].abandonos++; abandonosT.push(t); filaT.push({t,fila:fila.length}); }
+    } else if(ev.tipo==='fim'){ livres++; atendidos++; somaTotal+=(t-ev.cli.tChegada); somaPassagem+=(t-ev.cli.tFila);
+      porHora[idxH(t)].atendidos++; filaT.push({t,fila:fila.length}); tentaAtender(t); }
+  }
+  integra(fecha);
+
+  const Lq=areaFila/T, L=areaSist/T, rho=somaServ/(c*T);
+  const wqMedio=atendidos?somaWq/atendidos:0;
+  const Wtotal=atendidos?somaTotal/atendidos:0;          // experiência: chegada->saída (inclui coleta)
+  const passagemMedia=entraram?somaPassagem/entraram:0;  // fila+serviço (boundary de Little)
+  const lambdaSubMin=entraram/T;                         // entrantes por minuto
+  const littleErro = L>0 ? Math.abs(L - lambdaSubMin*passagemMedia)/L : 0;
+  const series=porHora.map(h=>({hora:h.hora,chegadas:h.chegadas,atendidos:h.atendidos,abandonos:h.abandonos,rho:h.servMin/(c*60)}));
+  return { totChegadas, entraram, atendidos, abandonados,
+    conservacaoOk:(atendidos+abandonados)===entraram,
+    kpis:{ wqMedio, wqMax, abandonoPct:entraram?100*abandonados/entraram:0, rho, Lq, L,
+           throughputHora:atendidos/horas, tempoSistemaMedio:Wtotal, littleErro },
+    series, filaT, abandonosT };
+}
+
+// ===========================================================================
+//  TRACE-DRIVEN — KPIs medidos direto do log (mesma contabilidade)
+// ===========================================================================
+function runTrace(limpos, est){
+  const atend = limpos.filter(r=>!r.abandonou && r.caixaIni!=null && r.caixaFim!=null);
+  const nDias = est.nDias, horas=est.horaFecha-est.horaAbre;
+  // Wq = caixa_inicio - coleta_fim ; serviço = caixa_fim - caixa_inicio
+  let somaWq=0, nWq=0, wqMax=0;
+  for(const r of atend){ if(r.coletaFim!=null){ const wq=r.caixaIni-r.coletaFim; if(wq>=0){somaWq+=wq;nWq++; if(wq>wqMax)wqMax=wq;} } }
+  const wqMedio=nWq?somaWq/nWq:0;
+  const abandonoPct=100*limpos.filter(r=>r.abandonou).length/limpos.length;
+  // por hora (média por dia)
+  const porHora=[]; for(let h=0;h<horas;h++) porHora.push({hora:est.horaAbre+h,chegadas:0,atendidos:0,abandonos:0});
+  const idxH=t=>Math.min(horas-1,Math.max(0,Math.floor(t/60)-est.horaAbre));
+  for(const r of limpos){ if(r.chegada!=null) porHora[idxH(r.chegada)].chegadas++; }
+  for(const r of atend){ if(r.caixaFim!=null) porHora[idxH(r.caixaFim)].atendidos++; }
+  for(const r of limpos){ if(r.abandonou && r.coletaFim!=null) porHora[idxH(r.coletaFim)].abandonos++; }
+  const series=porHora.map(h=>({hora:h.hora,chegadas:h.chegadas/nDias,atendidos:h.atendidos/nDias,abandonos:h.abandonos/nDias}));
+  // Lq(t) sweep dos atendidos (entra coleta_fim, sai caixa_inicio), média por dia depois
+  return { wqMedio, wqMax, abandonoPct, throughputHora:atend.length/(nDias*horas),
+           muH:est.mu.h, series, nAtend:atend.length, nDias };
+}
+
+// ===========================================================================
+//  M/M/c analítico (Erlang-C) — gabarito de verificação
+// ===========================================================================
+function mmc(lambdaH, muH, c){
+  const a=lambdaH/muH, rho=a/c;
+  if(rho>=1) return {a,rho,estavel:false,Pwait:Infinity,Lq:Infinity,Wq:Infinity,W:Infinity,L:Infinity};
+  let s=0; for(let n=0;n<c;n++) s+=Math.pow(a,n)/fat(n);
+  const P0=1/(s + Math.pow(a,c)/fat(c)*(1/(1-rho)));
+  const Pwait=(Math.pow(a,c)/(fat(c)*(1-rho)))*P0;
+  const Lq=Pwait*rho/(1-rho), Wq=Lq/lambdaH*60, W=Wq+60/muH, L=lambdaH*(W/60);
+  return {a,rho,estavel:true,Pwait,Lq,Wq,W,L};
+}
+function fat(n){let f=1;for(let i=2;i<=n;i++)f*=i;return f;}
+
+// ===========================================================================
+//  CALIBRAÇÃO da paciência (estimador: casar abandono ao empírico)
+// ===========================================================================
+function calibraPaciencia(P, est){
+  const alvo=est.abandonoPctEmp;
+  const cfg0=()=>({c:est.c,lambdaScale:1,seed:7,horaAbre:est.horaAbre,horaFecha:est.horaFecha,pacienciaMedia:5});
+  let lo=0.5, hi=60;                                  // busca binária no tempo médio de paciência
+  for(let it=0; it<22; it++){ const mid=(lo+hi)/2;
+    const cfg=cfg0(); cfg.pacienciaMedia=mid;
+    // média de poucas réplicas p/ estabilidade
+    let ab=0,R=4; for(let i=0;i<R;i++){cfg.seed=7+i; ab+=runSimDist(P,cfg).kpis.abandonoPct;} ab/=R;
+    if(ab>alvo) lo=mid; else hi=mid;                  // mais paciência -> menos abandono
+  }
+  return (lo+hi)/2;
+}
+
+// ===========================================================================
+//  MOTOR ANIMADO — mesma mecânica, grava timeline por cliente p/ reprodução
+//  (paridade de KPIs com runSimDist verificada em teste)
+// ===========================================================================
+function runSimAnim(P, cfg){
+  const rng=criarRng(cfg.seed);
+  const c=cfg.c, abre=cfg.horaAbre*60, fecha=cfg.horaFecha*60, T=fecha-abre;
+  const heap=new Heap(); const slot=new Array(c).fill(null); let livres=c; const fila=[];
+  let totChegadas=0, entraram=0, atendidos=0, abandonados=0;
+  let somaWq=0, wqMax=0, somaTotal=0, somaPassagem=0, somaServ=0;
+  let areaFila=0, areaSist=0, filaMax=0, tAnt=abre;
+
+  const clientes=[], eventos=[], estadoT=[{t:abre,fila:0,ocup:0}];
+  const horas=cfg.horaFecha-cfg.horaAbre;
+  const porHora=[]; for(let h=0;h<horas;h++) porHora.push({hora:cfg.horaAbre+h,chegadas:0,atendidos:0,abandonos:0,servMin:0});
+  const idxH=t=>Math.min(horas-1,Math.max(0,Math.floor(t/60)-cfg.horaAbre));
+  const lambda=t=>Math.max(1e-9, P.lambdaH[Math.floor(t/60)]*cfg.lambdaScale);
+  let nid=0;
+
+  function integra(t){ const dt=t-tAnt; if(dt>0){ areaFila+=fila.length*dt; areaSist+=(fila.length+(c-livres))*dt; } tAnt=t; }
+  function snap(t){ estadoT.push({t,fila:fila.length,ocup:c-livres}); }
+  function creditaServ(ini,fim){ somaServ+=(fim-ini); let t=ini; while(t<fim){const hr=Math.floor(t/60),fh=(hr+1)*60,ate=Math.min(fim,fh),i=hr-cfg.horaAbre; if(i>=0&&i<horas)porHora[i].servMin+=(ate-t); t=ate;} }
+  function tentaAtender(t){ while(livres>0 && fila.length>0){ const cli=fila.shift(); cli.emFila=false;
+      let s=slot.indexOf(null); slot[s]=cli; livres--;
+      const wq=t-cli.tFila; somaWq+=wq; if(wq>wqMax)wqMax=wq;
+      cli.tInicio=t; cli.servidor=s;
+      const serv = cfg.servExpMean ? expo(rng,cfg.servExpMean)
+                 : Math.max(1, P.servico.b0 + P.servico.b1*cli.itens + normal(rng,0,P.servico.residSd))/60;
+      cli.tFim=t+serv; eventos.push({t,tipo:'atend',id:cli.id,serv:s,itens:cli.itens});
+      creditaServ(t,t+serv); heap.push({t:t+serv,tipo:'fim',cli}); snap(t); } }
+
+  heap.push({t:abre+expo(rng,60/lambda(abre)),tipo:'chegada'});
+  let guard=0;
+  while(heap.tamanho){ if(++guard>5e6) throw new Error('limite de eventos');
+    const ev=heap.pop(), t=ev.t; if(t>fecha && ev.tipo==='chegada') continue;
+    integra(Math.min(t,fecha));
+    if(ev.tipo==='chegada'){ totChegadas++;
+      const itens=Math.max(1,Math.round(escolhe(rng,P.itens.emp)));
+      const cli={id:nid++,itens,tChegada:t,emFila:false,tFimColeta:null,tFila:null,tInicio:null,tFim:null,tAband:null,servidor:null};
+      clientes.push(cli);
+      const coleta = cfg.semColeta ? 0 : logn(rng,P.coleta.mu,P.coleta.sigma)/60;
+      cli.tFimColeta=t+coleta;
+      heap.push({t:cli.tFimColeta,tipo:'fimColeta',cli});
+      heap.push({t:t+expo(rng,60/lambda(t)),tipo:'chegada'});
+      porHora[idxH(t)].chegadas++; eventos.push({t,tipo:'chegada',id:cli.id,itens});
+    } else if(ev.tipo==='fimColeta'){ const cli=ev.cli; cli.tFila=t; cli.emFila=true; entraram++;
+      fila.push(cli); if(fila.length>filaMax)filaMax=fila.length;
+      eventos.push({t,tipo:'fila',id:cli.id,itens:cli.itens});
+      if(!cfg.semAbandono) heap.push({t:t+expo(rng,cfg.pacienciaMedia),tipo:'abandono',cli});
+      snap(t); tentaAtender(t);
+    } else if(ev.tipo==='abandono'){ const cli=ev.cli;
+      if(cli.emFila){ const k=fila.indexOf(cli); if(k>=0)fila.splice(k,1); cli.emFila=false; cli.tAband=t;
+        abandonados++; somaPassagem+=(t-cli.tFila); porHora[idxH(t)].abandonos++;
+        eventos.push({t,tipo:'abandono',id:cli.id,itens:cli.itens}); snap(t); }
+    } else if(ev.tipo==='fim'){ const cli=ev.cli; slot[cli.servidor]=null; livres++; atendidos++;
+      somaTotal+=(t-cli.tChegada); somaPassagem+=(t-cli.tFila);
+      porHora[idxH(t)].atendidos++; eventos.push({t,tipo:'saida',id:cli.id,serv:cli.servidor,itens:cli.itens});
+      snap(t); tentaAtender(t); }
+  }
+  integra(fecha); snap(fecha);
+
+  const Lq=areaFila/T, L=areaSist/T, rho=somaServ/(c*T);
+  const wqMedio=atendidos?somaWq/atendidos:0, Wtotal=atendidos?somaTotal/atendidos:0;
+  const passagemMedia=entraram?somaPassagem/entraram:0, littleErro=L>0?Math.abs(L-(entraram/T)*passagemMedia)/L:0;
+  const series=porHora.map(h=>({hora:h.hora,chegadas:h.chegadas,atendidos:h.atendidos,abandonos:h.abandonos,rho:h.servMin/(c*60)}));
+  return { clientes, eventos, estadoT, abre, fecha, c,
+    totChegadas, entraram, atendidos, abandonados, conservacaoOk:(atendidos+abandonados)===entraram,
+    kpis:{ wqMedio, wqMax, abandonoPct:entraram?100*abandonados/entraram:0, rho, Lq, L,
+           throughputHora:atendidos/horas, tempoSistemaMedio:Wtotal, littleErro, filaMax },
+    series };
+}
+
+// ===========================================================================
+//  GERADOR DE DADOS DE EXEMPLO — roda o próprio motor validado e serializa
+//  as linhas do tempo dos clientes no esquema do CSV (realista, ~10% abandono)
+// ===========================================================================
+function gerarExemplo(nDias=25, seed=2026){
+  // P0: parâmetros conhecidos do modelo (mesma estatística do dataset real)
+  const rng0=criarRng(seed);
+  const itensEmp=[]; for(let i=0;i<5000;i++) itensEmp.push(Math.min(90,Math.max(1,Math.round(lognMS(rng0,23.5,12)))));
+  const perfil={8:67,9:71,10:71,11:69,12:68,13:69,14:69,15:68,16:67,17:113,18:112,19:116,20:69,21:72};
+  const lambdaH=new Array(24).fill(0); for(const h in perfil) lambdaH[+h]=perfil[h];
+  const colMu=Math.log(898)-0.5*Math.log(1+(346*346)/(898*898)), colSg=Math.sqrt(Math.log(1+(346*346)/(898*898)));
+  const P0={ c:3, mu:{h:33.8,s:106.5}, servico:{b0:36,b1:3,residSd:4.58},
+            coleta:{mediaS:898,sd:346,mu:colMu,sigma:colSg}, itens:{emp:itensEmp,media:23.5,sd:12},
+            lambdaH, horaAbre:8, horaFecha:22, abandonoPctEmp:9.8 };
+  const linhas=['id,dia,itens,chegada,coleta_inicio,coleta_fim,caixa_inicio,caixa_fim,abandonou'];
+  const fmt=(dia,min)=>{ const base=new Date(Date.UTC(2026,3,1,0,0,0)); base.setUTCDate(base.getUTCDate()+(dia-1));
+    if(min==null) return '';
+    const h=Math.floor(min/60), m=Math.floor(min%60), s=Math.floor((min*60)%60), p=n=>String(n).padStart(2,'0');
+    return `${base.getUTCFullYear()}-${p(base.getUTCMonth()+1)}-${p(base.getUTCDate())} ${p(h)}:${p(Math.min(59,m))}:${p(Math.min(59,s))}`; };
+  let id=1;
+  for(let dia=1;dia<=nDias;dia++){
+    const turbo = dia===14 ? 1.55 : 1.0;                  // um dia atípico mais cheio
+    const Pd={...P0, lambdaH: P0.lambdaH.map(v=>v*turbo)};
+    const r=runSimAnim(Pd,{c:3,lambdaScale:1,pacienciaMedia:4.44,seed:seed+dia,horaAbre:8,horaFecha:22});
+    for(const cl of r.clientes){
+      const ab = cl.tAband!=null;
+      linhas.push([ id++, dia, cl.itens,
+        fmt(dia,cl.tChegada), fmt(dia,cl.tChegada), fmt(dia,cl.tFimColeta),
+        ab?'':fmt(dia,cl.tInicio), ab?'':fmt(dia,cl.tFim), ab?'True':'False' ].join(','));
+    }
+  }
+  return linhas.join('\n');
+}
+function gauss(rng){return Math.sqrt(-2*Math.log(1-rng()))*Math.cos(2*Math.PI*rng());}
+function lognMS(rng,m,sd){const sg=Math.sqrt(Math.log(1+(sd*sd)/(m*m))),mu=Math.log(m)-sg*sg/2;return Math.exp(mu+sg*gauss(rng));}
+
+
+
+// ===========================================================================
+//  INTERFACE — player animado, KPIs ao vivo, logs consultáveis
+// ===========================================================================
+const $=id=>document.getElementById(id);
+let EST=null, PAC=4.44, SIM=null, C_ATUAL=3;
+let simT=0, tocando=false, velocidade=10, lastTS=0, ptrIn=0;
+const pos=new Map(); // id -> {x,y}  (posição suavizada na animação)
+
+// ---------- ingestão -------------------------------------------------------
+const drop=$('drop');
+['dragenter','dragover'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('hover');}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('hover');}));
+drop.addEventListener('drop',ev=>{const f=ev.dataTransfer.files[0];if(f)lerArquivo(f);});
+$('file').addEventListener('change',ev=>{const f=ev.target.files[0];if(f)lerArquivo(f);});
+$('exemplo').addEventListener('click',usarExemplo);
+
+function usarExemplo(){
+  $('erro').textContent='preparando dados de exemplo…';
+  // tenta o CSV hospedado; se falhar (offline/file://), GERA dados válidos
+  fetch('ENGF84_dados_supermercado.csv').then(r=>{if(!r.ok)throw 0;return r.text();})
+    .then(t=>processar(t,'CSV de exemplo'))
+    .catch(()=>{ try{ const t=gerarExemplo(25, 2026); processar(t,'dados gerados (25 dias)'); }
+      catch(e){ $('erro').textContent='Falha ao gerar exemplo: '+e.message; } });
+}
+function lerArquivo(f){
+  $('erro').textContent='';const n=f.name.toLowerCase();
+  if(n.endsWith('.csv')){const r=new FileReader();r.onload=()=>processar(r.result,f.name);r.readAsText(f);return;}
+  if(n.endsWith('.xlsx')||n.endsWith('.xls')){carregaSheetJS(()=>{const r=new FileReader();
+    r.onload=()=>{try{const wb=XLSX.read(new Uint8Array(r.result),{type:'array'});
+      processar(XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]]),f.name);}catch(e){$('erro').textContent='Falha XLSX: '+e.message;}};
+    r.readAsArrayBuffer(f);});return;}
+  $('erro').textContent='Use .csv ou .xlsx.';
+}
+function carregaSheetJS(cb){if(window.XLSX)return cb();$('erro').textContent='carregando leitor XLSX…';
+  const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=()=>{$('erro').textContent='';cb();};s.onerror=()=>$('erro').textContent='Sem internet p/ XLSX — exporte como CSV.';document.head.appendChild(s);}
+
+// ---------- pipeline -------------------------------------------------------
+function processar(text, fonte){
+  try{
+    const rows=parseData(text);
+    const {limpos,rel}=limpar(rows);
+    EST=estimar(limpos); EST._rel=rel; EST._fonte=fonte; EST._limpos=limpos;
+    PAC=calibraPaciencia(EST,EST);
+    C_ATUAL=EST.c;
+    $('drop').classList.add('hide'); $('app').classList.remove('hide');
+    $('cNum').textContent=C_ATUAL;
+    montarAnalise(); montarParams();
+    construirSim(C_ATUAL); reiniciar(); 
+  }catch(e){$('erro').textContent='Erro: '+e.message;$('drop').classList.remove('hide');}
+}
+
+// ---------- construir simulação para um c ----------------------------------
+function construirSim(c){
+  const cfg={c, lambdaScale:1, pacienciaMedia:PAC, seed:42, horaAbre:EST.horaAbre, horaFecha:EST.horaFecha};
+  const r=runSimAnim(EST, cfg);
+  // integrais cumulativas p/ KPIs ao vivo
+  const E=r.estadoT, cumF=new Float64Array(E.length), cumO=new Float64Array(E.length);
+  for(let i=1;i<E.length;i++){const dt=E[i].t-E[i-1].t;cumF[i]=cumF[i-1]+E[i-1].fila*dt;cumO[i]=cumO[i-1]+E[i-1].ocup*dt;}
+  // prefixos de atendidos (ordenar por tFim)
+  const serv=r.clientes.filter(x=>x.tFim!=null).sort((a,b)=>a.tFim-b.tFim);
+  const tFimA=serv.map(x=>x.tFim), pWq=new Float64Array(serv.length+1), pW=new Float64Array(serv.length+1);
+  for(let i=0;i<serv.length;i++){pWq[i+1]=pWq[i]+(serv[i].tInicio-serv[i].tFimColeta);pW[i+1]=pW[i]+(serv[i].tFim-serv[i].tChegada);}
+  const entr=r.clientes.map(x=>x.tFimColeta).filter(v=>v!=null).sort((a,b)=>a-b);
+  const aband=r.clientes.filter(x=>x.tAband!=null).map(x=>x.tAband).sort((a,b)=>a-b);
+  SIM={r,c,E,cumF,cumO,tFimA,pWq,pW,entr,aband,abre:r.abre,fecha:r.fecha};
+}
+
+// ---------- player ---------------------------------------------------------
+function reiniciar(){ simT=SIM.abre; ptrIn=0; pos.clear(); tudoLog=false;
+  desenhar(); atualizarKPIs(); renderLog(); atualizarRelogio(); }
+function play(){ if(!SIM)return; tocando=!tocando; $('play').textContent=tocando?'⏸ Pausar':'▶ Iniciar';
+  $('play').classList.toggle('pausar',tocando); if(tocando){lastTS=performance.now();requestAnimationFrame(loop);} }
+function loop(ts){ if(!tocando)return; const dt=Math.min(0.1,(ts-lastTS)/1000); lastTS=ts;
+  simT+=dt*velocidade/60;                                  // velocidade = seg-sim por seg-real
+  if(simT>=SIM.fecha){ simT=SIM.fecha; tocando=false; $('play').textContent='▶ Iniciar'; $('play').classList.remove('pausar'); }
+  avancarChegadas(); desenhar(); atualizarRelogio();
+  if(ts-(loop._k||0)>90){ atualizarKPIs(); renderLog(); loop._k=ts; }       // KPIs/log ~11fps
+  if(tocando)requestAnimationFrame(loop);
+  else { atualizarKPIs(); renderLog(); }
+}
+function avancarChegadas(){ const cl=SIM.r.clientes; while(ptrIn<cl.length && cl[ptrIn].tChegada<=simT){ const c=cl[ptrIn]; if(!pos.has(c.id))pos.set(c.id,{x:0,y:0,init:false}); ptrIn++; } }
+
+// ---------- animação -------------------------------------------------------
+function fase(c,t){ if(t<c.tChegada)return null; if(t<c.tFimColeta)return'coleta';
+  if(c.tAband!=null&&t>=c.tAband)return'abandono'; if(c.tInicio!=null&&t>=c.tInicio)return t<c.tFim?'atend':'saiu'; return'fila'; }
+function rnd(id){let x=Math.sin(id*99.7)*1e4;return x-Math.floor(x);}
+
+function desenhar(){
+  const cv=$('stage'),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=340;
+  cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);g.clearRect(0,0,W,H);
+  const c=SIM.c, top=30, botLab=H-14;
+  // zonas
+  const Z={col:[W*0.10,W*0.36],fila:[W*0.40,W*0.605],cx:[W*0.645,W*0.905]};
+  g.font='10px ui-monospace,monospace';g.textAlign='center';g.fillStyle='#5d6b7d';
+  g.fillText('ENTRADA',W*0.045,botLab);g.fillText('COLETA',(Z.col[0]+Z.col[1])/2,botLab);
+  g.fillText('FILA',(Z.fila[0]+Z.fila[1])/2,botLab);g.fillText('CAIXAS',(Z.cx[0]+Z.cx[1])/2,botLab);g.fillText('SAÍDA',W*0.955,botLab);
+  // caixotes das zonas
+  g.strokeStyle='#1c2530';g.lineWidth=1;
+  rr(g,Z.col[0],top,Z.col[1]-Z.col[0],H-top-26,10);g.stroke();
+  // estações de caixa
+  const cxX0=Z.cx[0],cxW=Z.cx[1]-Z.cx[0],areaH=H-top-30,stH=Math.min(46,areaH/c),gap=(areaH-stH*c)/(c+1);
+  const estacoes=[];
+  for(let i=0;i<c;i++){const y=top+gap+(stH+gap)*i;estacoes.push(y+stH/2);
+    g.fillStyle='#11161d';g.strokeStyle='#26303d';rr(g,cxX0,y,cxW,stH,8);g.fill();g.stroke();
+    g.fillStyle='#3a4756';g.textAlign='left';g.font='9px ui-monospace,monospace';g.fillText('caixa '+(i+1),cxX0+8,y+11);}
+
+  // coletar clientes ativos
+  const ativos=[];
+  for(const c2 of SIM.r.clientes){ if(c2.tChegada>simT)break; const f=fase(c2,simT); if(f==null)continue;
+    const fim=(c2.tFim!=null?c2.tFim:c2.tAband!=null?c2.tAband:simT); if((f==='saiu'||f==='abandono')&&simT>fim+0.6)continue; ativos.push([c2,f]); }
+  // fila ordenada FIFO
+  const naFila=ativos.filter(a=>a[1]==='fila').map(a=>a[0]).sort((x,y)=>x.tFila-y.tFila);
+
+  // alvos por fase
+  for(const [c2,f] of ativos){
+    let tx,ty;
+    if(f==='coleta'){ const r1=rnd(c2.id),r2=rnd(c2.id+7); tx=Z.col[0]+12+r1*(Z.col[1]-Z.col[0]-24); ty=top+14+r2*(H-top-54); }
+    else if(f==='fila'){ const k=naFila.indexOf(c2),vis=Math.min(naFila.length,16),x1=Z.fila[1],x0=Z.fila[0]+8;
+      const step=(x1-x0)/Math.max(1,vis); tx=k<16? x1-8-k*step : x0; ty=top+(H-top-30)/2; }
+    else if(f==='atend'){ tx=cxX0+cxW*0.46; ty=estacoes[c2.servidor]||(H/2); }
+    else if(f==='saiu'){ const a=Math.min(1,(simT-c2.tFim)/0.6); tx=Z.cx[1]+20+a*(W-Z.cx[1]); ty=estacoes[c2.servidor]||(H/2); }
+    else if(f==='abandono'){ const a=Math.min(1,(simT-c2.tAband)/0.6); tx=Z.fila[0]+30; ty=top+(H-top-30)/2 - a*60; }
+    let p=pos.get(c2.id); if(!p){p={x:tx,y:ty,init:true};pos.set(c2.id,p);} if(!p.init){p.x=tx;p.y=ty;p.init=true;}
+    p.x+=(tx-p.x)*0.25; p.y+=(ty-p.y)*0.25;
+    pintarCliente(g,p.x,p.y,c2,f,simT);
+  }
+  // contador de fila grande
+  if(naFila.length>16){g.fillStyle='#8b98a8';g.font='11px ui-monospace,monospace';g.textAlign='center';g.fillText('+'+(naFila.length-16),Z.fila[0]+10,top+(H-top-30)/2-16);}
+  // progresso de cada caixa ocupado
+  for(const [c2,f] of ativos){ if(f==='atend'){ const y=estacoes[c2.servidor]; if(y==null)continue;
+    const pr=Math.max(0,Math.min(1,(simT-c2.tInicio)/(c2.tFim-c2.tInicio)));
+    g.fillStyle='#1c2530';rr(g,cxX0+8,y+13,cxW-16,4,2);g.fill();
+    g.fillStyle='#2ec4b6';rr(g,cxX0+8,y+13,(cxW-16)*pr,4,2);g.fill(); } }
+}
+function pintarCliente(g,x,y,c,f,t){
+  const w=Math.max(15,Math.min(30,12+c.itens*0.5)),h=15;
+  let col= f==='coleta'?'#9b8cff' : f==='fila'?'#f0b429' : f==='atend'?'#39d0c8' : f==='saiu'?'#3ddc97' : '#ff6b5d';
+  let al=1; if(f==='saiu')al=1-Math.min(1,(t-c.tFim)/0.6); if(f==='abandono')al=1-Math.min(1,(t-c.tAband)/0.6);
+  g.globalAlpha=Math.max(0,al);
+  g.fillStyle=col;rr(g,x-w/2,y-h/2,w,h,7);g.fill();
+  g.fillStyle='rgba(0,0,0,0.55)';g.font='9px ui-monospace,monospace';g.textAlign='center';g.textBaseline='middle';
+  g.fillText(c.itens,x,y+0.5);g.textBaseline='alphabetic';g.globalAlpha=1;
+}
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+
+// ---------- relógio --------------------------------------------------------
+function atualizarRelogio(){ const m=Math.floor(simT),hh=String(Math.floor(m/60)).padStart(2,'0'),mm=String(m%60).padStart(2,'0');
+  $('relogio').textContent=hh+':'+mm; const p=100*(simT-SIM.abre)/(SIM.fecha-SIM.abre); $('progBar').style.width=Math.max(0,Math.min(100,p))+'%'; }
+
+// ---------- KPIs ao vivo ----------------------------------------------------
+function bcount(arr,x){let lo=0,hi=arr.length;while(lo<hi){const m=(lo+hi)>>1;if(arr[m]<=x)lo=m+1;else hi=m;}return lo;}
+function atualizarKPIs(){
+  const t=Math.min(simT,SIM.fecha), el=Math.max(1e-6,t-SIM.abre);
+  // integrais
+  let lo=0,hi=SIM.E.length-1; while(lo<hi){const m=(lo+hi+1)>>1; if(SIM.E[m].t<=t)lo=m;else hi=m-1;}
+  const iF=SIM.cumF[lo]+SIM.E[lo].fila*(t-SIM.E[lo].t), iO=SIM.cumO[lo]+SIM.E[lo].ocup*(t-SIM.E[lo].t);
+  const Lq=iF/el, rho=iO/(SIM.c*el), L=(iF+iO)/el;
+  const k=bcount(SIM.tFimA,t), Wq=k?SIM.pWq[k]/k:0, W=k?SIM.pW[k]/k:0;
+  const ent=bcount(SIM.entr,t), ab=bcount(SIM.aband,t), abPct=ent?100*ab/ent:0, thr=k/(el/60);
+  hero([
+    ['Abandono','desistências / entradas',abPct.toFixed(1),'%',abPct>5?'alert':'green','restrição: ≤ 5%'],
+    ['Utilização ρ','ρ = λ / (c·μ)',(rho*100).toFixed(0),'%',rho>0.85?'alert':rho>0.7?'amber':'',(rho<1?'estável':'saturado')],
+    ['Espera na fila Wq','Wq = Lq / λ',Wq.toFixed(2),'min','',W>0?('atendidos: '+k):''],
+  ]);
+  sec([
+    ['Fila Lq','clientes esperando',Lq.toFixed(2),'cli'],
+    ['Sistema L','L = Lq + ocupação',L.toFixed(2),'cli'],
+    ['Tempo no sistema W','chegada → saída',W.toFixed(1),'min'],
+    ['Throughput','atendidos por hora',thr.toFixed(0),'/h'],
+  ]);
+}
+function hero(cards){ $('kHero').innerHTML=cards.map(([lab,frm,num,un,cls,dsc])=>
+  `<div class="kbig ${cls}"><div class="lab"><span>${lab}</span><span class="frm">${frm}</span></div><div class="num">${num}<span class="un"> ${un}</span></div><div class="dsc">${dsc}</div></div>`).join(''); }
+function sec(cards){ $('kSec').innerHTML=cards.map(([lab,frm,num,un])=>
+  `<div class="kbig"><div class="lab"><span>${lab}</span></div><div class="num">${num}<span class="un"> ${un}</span></div><div class="dsc">${frm}</div></div>`).join(''); }
+
+// ---------- log consultável -------------------------------------------------
+let filtroLog='todos', tudoLog=false;
+const NOMES={chegada:'chegada',fila:'entra na fila',atend:'início atendimento',saida:'saída (atendido)',abandono:'abandono'};
+function renderLog(){
+  if(!SIM)return; const ev=SIM.r.eventos, busca=$('buscaId').value.trim();
+  const soAte=$('soAte').checked, lim=soAte?simT:Infinity;
+  let lista=[]; for(let i=ev.length-1;i>=0 && lista.length<300;i--){ const e=ev[i];
+    if(e.t>lim)continue; if(filtroLog!=='todos'&&e.tipo!==filtroLog)continue;
+    if(busca&&String(e.id)!==busca)continue; lista.push(e); }
+  $('logBody').innerHTML=lista.map(e=>{ const m=Math.floor(e.t),hh=String(Math.floor(m/60)).padStart(2,'0'),mm=String(m%60).padStart(2,'0'),ss=String(Math.floor((e.t*60)%60)).padStart(2,'0');
+    let det=''; if(e.tipo==='atend')det='caixa '+(e.serv+1); if(e.tipo==='saida')det='caixa '+(e.serv+1);
+    return `<tr><td>${hh}:${mm}:${ss}</td><td><span class="ev ${e.tipo}">${NOMES[e.tipo]}</span></td><td>#${e.id}</td><td>${e.itens}</td><td>${det}</td></tr>`;}).join('')
+    || '<tr><td colspan="5" style="color:#5d6b7d;padding:14px">nenhum evento ainda — inicie a simulação.</td></tr>';
+}
+document.querySelectorAll('.ftag').forEach(b=>b.onclick=()=>{document.querySelectorAll('.ftag').forEach(x=>x.classList.remove('on'));b.classList.add('on');filtroLog=b.dataset.f;renderLog();});
+$('buscaId').oninput=renderLog; $('soAte').onchange=renderLog;
+$('baixarLog').onclick=()=>{ const ev=SIM.r.eventos;
+  let csv='hora_min,tipo,cliente,itens,caixa\n'+ev.map(e=>`${e.t.toFixed(3)},${e.tipo},${e.id},${e.itens},${e.serv!=null?e.serv+1:''}`).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='log_eventos.csv';a.click(); };
+
+// ---------- análise (M/M/c + verificação) ----------------------------------
+function montarAnalise(){
+  const e=EST,muH=e.mu.h;
+  const lamPico=(e.lambdaH[17]+e.lambdaH[18]+e.lambdaH[19])/3, lamFora=e.lambdaH[10];
+  const linhas=[['Pico, c=3 (atual)',lamPico,3],['Pico, c=4 (proposta)',lamPico,4],['Fora de pico, c=3',lamFora,3]];
+  let html='<tr><th>cenário</th><th>λ/h</th><th>c</th><th>ρ</th><th>P(espera)</th><th>Lq</th><th>Wq</th></tr>';
+  for(const [nome,lam,c] of linhas){const m=mmc(lam,muH,c);html+=`<tr class="${m.estavel?'':'bad'}"><td>${nome}</td><td>${lam.toFixed(0)}</td><td>${c}</td><td>${m.rho.toFixed(2)}</td><td>${m.estavel?m.Pwait.toFixed(2):'—'}</td><td>${m.estavel?m.Lq.toFixed(2):'∞'}</td><td>${m.estavel?m.Wq.toFixed(1)+' min':'∞'}</td></tr>`;}
+  $('mmcTab').innerHTML=html;
+  // validação rápida: sim (c base) vs empírico
+  const cfg={c:e.c,lambdaScale:1,pacienciaMedia:PAC,seed:42,horaAbre:e.horaAbre,horaFecha:e.horaFecha};
+  let R=6,ab=0,thr=0,lit=0,cons=true,rhoMax=0;
+  for(let i=0;i<R;i++){const r=runSimDist(e,{...cfg,seed:42+i});ab+=r.kpis.abandonoPct;thr+=r.kpis.throughputHora;lit+=r.kpis.littleErro;cons=cons&&r.conservacaoOk;rhoMax=Math.max(rhoMax,r.kpis.rho);}
+  ab/=R;thr/=R;lit/=R;
+  const tr=runTrace(e._limpos,e);
+  $('verif').innerHTML=[
+    {t:'conservação de entidades',k:cons?'ok':'bad'},
+    {t:'Lei de Little: erro '+(lit*100).toFixed(1)+'%',k:lit<0.05?'ok':'warn'},
+    {t:'ρ base = '+rhoMax.toFixed(2)+(rhoMax<1?' (estável)':' (saturado)'),k:rhoMax<1?'ok':'warn'},
+    {t:'validação abandono: sim '+ab.toFixed(1)+'% vs dados '+tr.abandonoPct.toFixed(1)+'%',k:Math.abs(ab-tr.abandonoPct)<3?'ok':'warn'},
+    {t:'throughput: sim '+thr.toFixed(0)+'/h vs dados '+tr.throughputHora.toFixed(0)+'/h',k:'ok'},
+  ].map(c=>`<span class="chip ${c.k}">${c.t}</span>`).join('');
+  $('valNote').innerHTML='<b>Validação.</b> O modo principal (animação) é distribution-driven com a paciência calibrada do log. Os números acima comparam o modelo com os dados reais (trace-driven). Declare a tolerância de desvio <b>antes</b> de comparar com o holdout do professor.';
+}
+function montarParams(){
+  const e=EST,rel=e._rel;
+  const chips=[
+    `fonte: ${e._fonte}`, `${rel.limpo.toLocaleString('pt-BR')} registros limpos`, `${e.nDias} dias · ${e.horaAbre}–${e.horaFecha}h`,
+    `c estimado = ${e.c}`, `μ = ${e.mu.h.toFixed(1)}/h`, `serviço = ${e.servico.b0.toFixed(0)}+${e.servico.b1.toFixed(2)}·itens`,
+    `coleta = ${(e.coleta.mediaS/60).toFixed(1)} min`, `cesta = ${e.itens.media.toFixed(1)} itens`,
+    `λ pico = ${((e.lambdaH[17]+e.lambdaH[18]+e.lambdaH[19])/3).toFixed(0)}/h`, `abandono obs. = ${e.abandonoPctEmp.toFixed(1)}%`,
+    `paciência calibrada = ${PAC.toFixed(1)} min`,
+  ];
+  $('paramChips').innerHTML=chips.map(c=>`<span class="chip">${c}</span>`).join('');
+}
+
+// ---------- controles -------------------------------------------------------
+$('play').onclick=play; $('reset').onclick=()=>{tocando=false;$('play').textContent='▶ Iniciar';$('play').classList.remove('pausar');reiniciar();};
+document.querySelectorAll('#vel button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#vel button').forEach(x=>x.classList.remove('on'));b.classList.add('on');velocidade=+b.dataset.v;});
+function mudaC(d){ const nc=Math.max(1,Math.min(12,C_ATUAL+d)); if(nc===C_ATUAL)return; C_ATUAL=nc; $('cNum').textContent=nc;
+  const era=tocando; tocando=false; construirSim(nc); simT=SIM.abre; ptrIn=0; pos.clear();
+  desenhar();atualizarKPIs();renderLog();atualizarRelogio();
+  if(era){tocando=true;$('play').textContent='⏸ Pausar';$('play').classList.add('pausar');lastTS=performance.now();requestAnimationFrame(loop);} }
+$('cMinus').onclick=()=>mudaC(-1); $('cPlus').onclick=()=>mudaC(1);
+window.addEventListener('resize',()=>{if(SIM){desenhar();}});
+</script>
+</body></html>
