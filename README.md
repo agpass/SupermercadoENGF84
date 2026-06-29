@@ -29,26 +29,9 @@ O botão **"usar dados de exemplo"** tenta carregar o CSV hospedado e, se não c
 
 ## Como rodar localmente
 
-Abrir `index.html` direto no navegador já funciona para a animação e os KPIs (inclusive o botão de exemplo, que gera dados se preciso). Para servir os arquivos (e fazer o `fetch` do CSV de exemplo funcionar):
+Abrir `index.html` direto no navegador. Anexar planilha .csv com entrada de dados.
 
-```bash
-python3 -m http.server 8000      # na pasta do projeto
-# abra http://localhost:8000
-```
-
-Arrastar-e-soltar a planilha funciona em qualquer caso, inclusive offline. O leitor de `.xlsx` precisa de internet (carrega a biblioteca sob demanda); para uso 100% offline, exporte como `.csv`.
-
-## Publicar no GitHub (GitHub Pages)
-
-```bash
-git add index.html README.md ENGF84_dados_supermercado.csv
-git commit -m "Simulador de filas ao vivo: animacao, KPIs e log consultavel"
-git push
-```
-
-No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch**, escolha `main` e a pasta `/ (root)`, salve. Em ~1 min o app fica no ar em `https://SEU-USUARIO.github.io/SEU-REPO/`. Tudo é client-side — não há backend.
-
-## Estrutura no repo
+## Estrutura da repo
 
 ```
 index.html                       <- o simulador inteiro (motor + animacao + painel)
