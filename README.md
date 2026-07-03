@@ -95,26 +95,6 @@ python3 -m http.server 8000     # e abra http://localhost:8000
 
 Arrastar-e-soltar a planilha funciona offline. O leitor de `.xlsx` precisa de internet (carrega a biblioteca sob demanda); para uso 100% offline, exporte como `.csv`.
 
-## Publicar no GitHub (GitHub Pages)
-
-```bash
-git add index.html gerador.html README.md ENGF84_dados_supermercado.csv
-git commit -m "Simulador de filas + gerador de dados"
-git push
-```
-
-No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch**, escolha `main` e a pasta `/ (root)`, salve. Em ~1 min o site fica em `https://SEU-USUARIO.github.io/SEU-REPO/`. Tudo é client-side — não há backend.
-
-## Estrutura do repositório
-
-```
-index.html                          simulador (dados reais + cenários de caixas)
-gerador.html                        anexo: gerador de dados por parâmetros
-ENGF84_dados_supermercado.csv       planilha de exemplo (opcional)
-README.md                           este arquivo
-Documentacao_Programa_Grupo6.docx   documentação detalhada em Word (opcional)
-```
-
 ## Verificação e validação
 
 - **Conservação de entidades** em todos os dias (entram = atendidos + abandonos).
